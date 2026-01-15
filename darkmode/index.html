@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+    <link rel="stylesheet" type="text/css" href="static/squircle.css">
+    <title>Weather App</title>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <h1>Weather App</h1>
+    <form id="weather-form">
+      <label for="city-input">Enter a city name:</label>
+      <input type="text" id="city-input" name="city" required>
+      <button type="submit">Get Weather</button>
+    </form>
+    <div id="weather-results" class="squircle">
+      <div id="weather-details"></div>
+    </div>
+
+    <script src="weather.js"></script>
+  </body>
+</html>
