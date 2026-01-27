@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from datetime import datetime
 
 # Keep your API Key safe here
-API_KEY = "api_key_here"
+API_KEY = "30d4741c779ba94c470ca1f63045390a"
 
 def analyze_weather(city_name):
     # 1. Fetch Forecast Data (same endpoint the JS used)
