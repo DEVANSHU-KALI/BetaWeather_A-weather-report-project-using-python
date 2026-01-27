@@ -8,15 +8,34 @@
   </head>
   <body>
     <h1>Weather App</h1>
-    <form id="weather-form">
-      <label for="city-input">Enter a city name:</label>
-      <input type="text" id="city-input" name="city" required>
-      <button type="submit">Get Weather</button>
-    </form>
-    <div id="weather-results" class="squircle">
-      <div id="weather-details"></div>
+    
+    <div class="main-container">
+      <!-- Left Panel: Search Form -->
+      <div class="left-panel">
+        <div class="search-card">
+          <h2>Search City</h2>
+          <form id="weather-form">  
+            <label for="city-input">Enter a city name:</label>
+            <input type="text" id="city-input" name="city" placeholder="e.g. London" required>
+            <button type="submit">Get Weather</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Panel: Results -->
+      <div class="right-panel">
+        <div id="weather-results" class="squircle">
+          <div id="weather-details">
+            <p class="placeholder-text">Enter a city to see weather data</p>
+          </div>
+          <div class="chart-container" style="display: none;">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script src="weather.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="weather.js?v=3"></script>
   </body>
 </html>
