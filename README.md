@@ -13,6 +13,6 @@ Python, Flask, Scikit-Learn, NumPy, JavaScript (Chart.js), HTML/CSS.
 # How to Implement:
 - start with cloning or pulling this repo to your local system.
 - I recommend to use uv for faster installation of requirements and use venv for this. if you don't have uv use the 'pip install uv' command to get uv.
-- use your OpenWeatherMap api key in the project and start executing the project.
+- paste your OpenWeatherMap api key in the weather.py and start executing the project.
 - use 'uv pip install -r requirements.txt' command to install all the requirements.
 - for execution directly staying the betaweather path, use 'uv run -- python/darkmode app.py' command to execute the code.
