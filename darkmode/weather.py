@@ -2,49 +2,60 @@ import requests
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from datetime import datetime
+from sklearn.metrics import mean_squared_error, r2_score
 
-# Keep your API Key safe here
-API_KEY = "api_key_here"
+# If the key is new, wait up to 2 hours for activation.
+API_KEY = "your_openweathermap_api_key_here"
 
 def analyze_weather(city_name):
-    # 1. Fetch Forecast Data (same endpoint the JS used)
+    # 1. Fetch Forecast Data
     url = f"https://api.openweathermap.org/data/2.5/forecast?q={city_name}&appid={API_KEY}&units=imperial"
-    response = requests.get(url)
     
-    if response.status_code != 200:
-        return {"error": "Invalid city or API error"}
+    try:
+        response = requests.get(url, timeout=10)
+        # Check for activation (401) or misspelled city (404) errors
+        if response.status_code != 200:
+            error_msg = response.json().get('message', 'API request failed')
+            return {"error": f"API Error: {error_msg} (Status: {response.status_code})"}
+    except requests.RequestException as e:
+        return {"error": f"Connection error: {str(e)}"}
 
     data = response.json()
     
     # 2. Extract Data (Next 24 hours = 8 points)
     forecast_slice = data['list'][:8]
-    
-    # Prepare lists for X (time index) and Y (temperature)
     temps = [item['main']['temp'] for item in forecast_slice]
     labels = [datetime.fromtimestamp(item['dt']).strftime('%I:%M %p') for item in forecast_slice]
     
-    # Create numpy arrays for Scikit-Learn (Reshaping X is required for sklearn)
-    X = np.array(range(len(temps))).reshape(-1, 1) # [[0], [1], [2]...]
+    # 3. Prepare for Scikit-Learn
+    X = np.array(range(len(temps))).reshape(-1, 1) 
     y = np.array(temps)
 
-    # 3. Perform Linear Regression (The Data Science Part)
+    # 4. Perform Linear Regression
     model = LinearRegression()
     model.fit(X, y)
     
     slope = model.coef_[0]
     intercept = model.intercept_
     
-    # Calculate the "Trend Line" points
-    trend_line = model.predict(X).tolist() # Convert back to list for JSON
-    
-    # 4. Analyze Trend
+    # Generate Predictions for evaluation
+    y_pred = model.predict(X)
+    trend_line = y_pred.tolist() 
+
+    # 5. Evaluation Metrics
+    # R2 (R-squared) measures fit; closer to 1.0 is better.
+    # MSE (Mean Squared Error) measures average error; lower is better.
+    r2 = r2_score(y, y_pred)
+    mse = mean_squared_error(y, y_pred)
+
+    # 6. Analyze Trend
     trend_text = "Stable"
     if slope > 0.5:
         trend_text = "Heating Up 📈"
     elif slope < -0.5:
         trend_text = "Cooling Down 📉"
 
-    # 5. Extract Current Weather Details for the UI
+    # 7. Extract Details for UI
     current = data['list'][0]
     
     return {
@@ -53,9 +64,11 @@ def analyze_weather(city_name):
         "current_temp_c": round((current['main']['temp'] - 32) * 5/9),
         "wind_speed": f"{current['wind']['speed']:.2f} mph",
         "time_of_day": datetime.fromtimestamp(current['dt']).strftime('%I:%M:%S %p'),
-        "labels": labels,          # X-axis labels
-        "actual_temps": temps,     # Y-axis data (Blue line)
-        "trend_line": trend_line,  # Regression data (Yellow line)
-        "trend_text": trend_text,  # Analysis result
-        "slope": slope
+        "labels": labels,
+        "actual_temps": temps,
+        "trend_line": trend_line,
+        "trend_text": trend_text,
+        "slope": slope,
+        "mse": round(mse, 4), 
+        "r2": round(r2, 4)
     }
