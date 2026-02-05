@@ -1,41 +1,166 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <link rel="stylesheet" type="text/css" href="static/style.css">
-    <link rel="stylesheet" type="text/css" href="static/squircle.css">
-    <title>Weather App</title>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-  </head>
-  <body>
-    <h1>Weather App</h1>
-    
-    <div class="main-container">
-      <!-- Left Panel: Search Form -->
-      <div class="left-panel">
-        <div class="search-card">
-          <h2>Search City</h2>
-          <form id="weather-form">  
-            <label for="city-input">Enter a city name:</label>
-            <input type="text" id="city-input" name="city" placeholder="e.g. London" required>
-            <button type="submit">Get Weather</button>
-          </form>
-        </div>
-      </div>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetaWeather - AI Forecast</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --accent-orange: #ff7b54;
+            --accent-blue: #4facfe;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
 
-      <!-- Right Panel: Results -->
-      <div class="right-panel">
-        <div id="weather-results" class="squircle">
-          <div id="weather-details">
-            <p class="placeholder-text">Enter a city to see weather data</p>
-          </div>
-          <div class="chart-container" style="display: none;">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
-      </div>
+        body {
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            min-height: 100vh; color: white; padding: 40px;
+        }
+
+        .hero { text-align: center; margin-bottom: 40px; }
+        .hero h1 { font-size: 3.5rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .hero p { font-size: 1.1rem; color: #e0e0e0; max-width: 700px; margin: 0 auto; }
+
+        /* Controls */
+        .controls-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            max-width: 1200px; margin: 0 auto 30px auto; flex-wrap: wrap; gap: 20px;
+        }
+        .toggle-container { display: flex; align-items: center; gap: 15px; }
+        .unit-toggle {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 5px; display: flex;
+        }
+        .unit-btn {
+            background: none; border: none; color: white; padding: 8px 15px;
+            cursor: pointer; border-radius: 15px; font-weight: 600; transition: 0.3s;
+        }
+        .unit-btn.active { background: white; color: #333; }
+
+        .location-search { display: flex; align-items: center; gap: 20px; }
+        .location-display { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .search-box {
+            background: white; border-radius: 25px; padding: 10px 20px; display: flex;
+            align-items: center; width: 300px; transition: 0.3s;
+        }
+        .search-box:focus-within { box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .search-box input { border: none; outline: none; width: 100%; font-size: 1rem; margin-left: 10px; color: #333; }
+
+        /* Weekly Strip */
+        .weekly-strip {
+            display: flex; justify-content: space-between; max-width: 1200px;
+            margin: 0 auto 30px auto; gap: 10px; overflow-x: auto;
+        }
+        .day-card {
+            background: var(--glass-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border); border-radius: 15px;
+            padding: 15px; text-align: center; min-width: 100px; flex: 1;
+        }
+        .day-card.active { background: var(--accent-orange); border-color: var(--accent-orange); }
+
+        /* Dashboard */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; max-width: 1200px; margin: 0 auto; }
+
+        /* Left Card */
+        .weather-card {
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px);
+            border-radius: 20px; padding: 30px; display: flex; flex-direction: column;
+            justify-content: space-between; height: 500px; position: relative; overflow: hidden;
+        }
+        .current-temp { font-size: 6rem; font-weight: 300; line-height: 1; }
+        .weather-status { font-size: 1.8rem; margin-bottom: 5px; font-weight: 500; }
+        .ai-verdict {
+            background: rgba(0, 0, 0, 0.7); border-radius: 15px; padding: 20px;
+            margin-top: 20px; border-left: 5px solid var(--accent-orange);
+        }
+        .prediction-text { font-size: 1.4rem; font-weight: 700; color: #ffeb3b; }
+
+        /* Right Card - Graph */
+        .graph-card {
+            background: white; border-radius: 20px; padding: 25px; color: #333;
+            height: 500px; display: flex; flex-direction: column;
+        }
+        .chart-container { flex-grow: 1; width: 100%; position: relative; margin-bottom: 20px; }
+
+        .details-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: auto; }
+        .detail-item { background: #f5f5f5; padding: 15px; border-radius: 12px; text-align: center; }
+        .detail-value { font-weight: 700; font-size: 1.2rem; color: #333; }
+        .detail-label { font-size: 0.85rem; color: #777; }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <h1>BetaWeather</h1>
+        <p>Advanced weather prediction using Linear Regression and Random Forest models.<br>
+           We analyze historical data to determine if tomorrow will be warmer or cooler.</p>
     </div>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script defer src="weather.js?v=3"></script>
-  </body>
+    <div class="controls-bar">
+        <div class="toggle-container">
+            <h4>Weather forecast</h4>
+            <div class="unit-toggle">
+                <button class="unit-btn active" id="btn-c">°C</button>
+                <button class="unit-btn" id="btn-f">°F</button>
+            </div>
+        </div>
+        <div class="location-search">
+            <div class="location-display">
+                <span>📍</span> <span id="current-location">---</span>
+            </div>
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="city-input" placeholder="Search City (Press Enter)">
+            </div>
+        </div>
+    </div>
+
+    <div class="weekly-strip">
+        <div class="day-card active">Today<br>30°</div>
+        <div class="day-card">Fri<br>31°</div>
+        <div class="day-card">Sat<br>32°</div>
+        <div class="day-card">Sun<br>32°</div>
+        <div class="day-card">Mon<br>33°</div>
+        <div class="day-card">Tue<br>34°</div>
+        <div class="day-card">Wed<br>34°</div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="weather-card">
+            <div style="text-align: right; font-weight:600;" id="time-display">12:38 PM</div>
+            <div style="margin-top: auto;">
+                <div class="current-temp" id="temp-display">--°</div>
+                <div class="weather-status" id="weather-desc">Clear Sky</div>
+                <div style="font-size: 1rem; opacity: 0.9;">Feels like <span id="feels-like">--°</span></div>
+
+                <div class="ai-verdict">
+                    <h4 style="color:#ccc; font-size:0.85rem; text-transform:uppercase;">Prediction:</h4>
+                    <div class="prediction-text" id="ai-prediction">WAITING FOR DATA...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-card">
+            <div class="graph-header">
+                <h3>Regression Analysis</h3>
+                <p style="color: #666;">Comparing Actual Data vs. Linear Regression Fit</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="weatherChart"></canvas>
+            </div>
+            <div class="details-grid">
+                <div class="detail-item"><div class="detail-value" id="r2-val">--</div><div class="detail-label">Model Accuracy (R²)</div></div>
+                <div class="detail-item"><div class="detail-value" id="mse-val">--</div><div class="detail-label">Mean Sq. Error</div></div>
+                <div class="detail-item"><div class="detail-value" id="wind-val">--</div><div class="detail-label">Wind Speed</div></div>
+                <div class="detail-item"><div class="detail-value" id="slope-val">--</div><div class="detail-label">Trend Slope</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="weather.js"></script>
+</body>
 </html>

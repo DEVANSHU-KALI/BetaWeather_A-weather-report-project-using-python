@@ -1,97 +1,161 @@
 let myChart = null;
+let currentUnit = 'F'; // Default unit
+let currentData = null; // Store data for unit toggling
 
-function ensureChartLoaded(cb) {
-  if (window.Chart) { cb(); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-  s.onload = cb;
-  document.head.appendChild(s);
+// --- DOM ELEMENTS ---
+const cityInput = document.getElementById("city-input");
+const tempDisplay = document.getElementById("temp-display");
+const weatherDesc = document.getElementById("weather-desc"); // You might need to add this ID to HTML if missing, or use existing logic
+const feelsLike = document.getElementById("feels-like");
+const aiText = document.getElementById("ai-prediction");
+const locationText = document.getElementById("current-location");
+const timeDisplay = document.getElementById("time-display");
+
+// Stats Elements
+const r2Val = document.getElementById("r2-val");
+const mseVal = document.getElementById("mse-val");
+const windVal = document.getElementById("wind-val");
+const slopeVal = document.getElementById("slope-val");
+
+// --- 1. FETCH DATA FROM PYTHON ---
+function getWeather(cityName) {
+    // Show loading state
+    aiText.innerText = "Analyzing...";
+    aiText.style.color = "#ccc";
+
+    fetch(`/api/analyze?city=${cityName}`)
+        .then(response => {
+            if (!response.ok) throw new Error("City not found");
+            return response.json();
+        })
+        .then(data => {
+            if(data.error) throw new Error(data.error);
+            currentData = data; // Save for unit switching
+            updateUI(data);
+        })
+        .catch(error => {
+            console.error(error);
+            aiText.innerText = "Error: " + error.message;
+            aiText.style.color = "#ff4d4d";
+        });
 }
 
-// NOTE: Math functions removed! We now trust the Python backend.
+// --- 2. UPDATE THE UI ---
+function updateUI(data) {
+    // A. Update Text Info
+    locationText.innerText = data.city;
+    timeDisplay.innerText = data.time_of_day;
+    windVal.innerText = data.wind_speed;
+    
+    // Model Stats
+    r2Val.innerText = data.r2; 
+    mseVal.innerText = data.mse;
+    slopeVal.innerText = data.slope.toFixed(4);
 
-function displayWeatherData(data) {
-  // Update HTML Text
-  const weatherDetails = document.getElementById("weather-details");
-  weatherDetails.innerHTML = `
-    <p><span>Temperature:</span> ${data.current_temp_f}&deg;F / ${data.current_temp_c}&deg;C</p>
-    <p><span>City:</span> ${data.city}</p>
-    <p><span>Wind Speed:</span> ${data.wind_speed}</p>
-    <p><span>Time of Day:</span> ${data.time_of_day}</p>
-    <p><span>Current:</span> ${data.current_temp_f}&deg;F</p>
-    <p><span>24h Trend:</span> ${data.trend_text}</p>
-  `;
+    // B. Update Temperature (Handle Units)
+    updateTempDisplay();
 
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  document.querySelector('.chart-container').style.display = 'block';
+    // C. Update AI Verdict
+    aiText.innerText = data.trend_text;
+    if(data.trend_text.includes("Heating")) {
+        aiText.style.color = "#ffeb3b"; // Yellow/Hot
+    } else if(data.trend_text.includes("Cooling")) {
+        aiText.style.color = "#4facfe"; // Blue/Cool
+    } else {
+        aiText.style.color = "#fff"; // White/Stable
+    }
 
-  if (myChart) myChart.destroy();
+    // D. Update Graph
+    updateChart(data);
+}
 
-  ensureChartLoaded(() => {
+// --- 3. HANDLE UNITS (C/F) ---
+function updateTempDisplay() {
+    if(!currentData) return;
+
+    if(currentUnit === 'F') {
+        tempDisplay.innerText = currentData.current_temp_f + "°";
+        // Simple calculation for "feels like" if not provided by API, or just use temp
+        feelsLike.innerText = (currentData.current_temp_f - 2) + "°"; 
+    } else {
+        tempDisplay.innerText = currentData.current_temp_c + "°";
+        feelsLike.innerText = (currentData.current_temp_c - 1) + "°";
+    }
+}
+
+// Event Listeners for Buttons
+document.getElementById('btn-c').addEventListener('click', (e) => {
+    currentUnit = 'C';
+    e.target.classList.add('active');
+    document.getElementById('btn-f').classList.remove('active');
+    updateTempDisplay();
+});
+
+document.getElementById('btn-f').addEventListener('click', (e) => {
+    currentUnit = 'F';
+    e.target.classList.add('active');
+    document.getElementById('btn-c').classList.remove('active');
+    updateTempDisplay();
+});
+
+// --- 4. RENDER CHART (The Linear Regression Visuals) ---
+function updateChart(data) {
+    const ctx = document.getElementById('weatherChart').getContext('2d');
+    
+    if (myChart) myChart.destroy();
+
     myChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.labels, // Received from Python
-        datasets: [{
-          label: 'Actual Temp (°F)',
-          data: data.actual_temps, // Received from Python
-          borderColor: '#00E5FF',
-          borderWidth: 3,
-          backgroundColor: 'rgba(0, 229, 255, 0.25)',
-          pointRadius: 2,
-          tension: 0.4
-        }, {
-          label: 'Trend Line (Regression)',
-          data: data.trend_line, // Received from Python
-          borderColor: '#FFD700',
-          borderWidth: 2,
-          borderDash: [5, 5],
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: 'white' } } },
-        scales: {
-          x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.15)' } },
-          y: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.15)' } }
+        type: 'line',
+        data: {
+            labels: data.labels, // From Python
+            datasets: [
+                {
+                    label: 'Actual Forecast',
+                    data: data.actual_temps, // From Python
+                    borderColor: '#4facfe',
+                    backgroundColor: '#4facfe',
+                    pointRadius: 6,
+                    pointHoverRadius: 9,
+                    type: 'scatter' // Show as points
+                },
+                {
+                    label: 'Regression Line (AI Prediction)',
+                    data: data.trend_line, // From Python (y_pred)
+                    borderColor: '#ff7b54',
+                    borderWidth: 3,
+                    borderDash: [10, 5],
+                    pointRadius: 0,
+                    tension: 0 // Straight line
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: true, axis: 'x' },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 14 },
+                    padding: 10,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: { display: true, title: { display: true, text: 'Temp (°F)' } },
+                x: { grid: { display: false } }
+            }
         }
-      }
-    });
-  });
-}
-
-function getWeather(event) {
-  event.preventDefault();
-  const cityInput = document.getElementById("city-input");
-  const cityName = cityInput.value;
-
-  // CALL OUR LOCAL PYTHON SERVER, NOT OPENWEATHER DIRECTLY
-  const url = `/api/analyze?city=${cityName}`;
-
-  fetch(url)
-    .then((response) => {
-      if (response.ok) return response.json();
-      throw new Error("Invalid city or server error.");
-    })
-    .then((data) => {
-      if(data.error) throw new Error(data.error);
-      displayWeatherData(data);
-    })
-    .catch((error) => {
-      const chartContainer = document.querySelector('.chart-container');
-      if (chartContainer) chartContainer.style.display = 'none';
-      if (myChart) { myChart.destroy(); myChart = null; }
-      
-      const weatherDetails = document.getElementById("weather-details");
-      weatherDetails.innerHTML = `<p style="color: #F04747; text-align: center; padding: 20px;">${error.message}</p>`;
-      
-      setTimeout(() => {
-        weatherDetails.innerHTML = '<p class="placeholder-text">Enter a city to see weather data</p>';
-      }, 5000);
     });
 }
 
-const weatherForm = document.getElementById("weather-form");
-weatherForm.addEventListener("submit", getWeather);
+// --- 5. SEARCH LISTENER ---
+cityInput.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        const city = cityInput.value.trim();
+        if(city) getWeather(city);
+    }
+});
