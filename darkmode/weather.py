@@ -3,9 +3,10 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from datetime import datetime
 from sklearn.metrics import mean_squared_error, r2_score
+import os 
 
 # If the key is new, wait up to 2 hours for activation.
-API_KEY = "your_openweathermap_api_key_here"
+API_KEY = os.getenv("OPEN_WEATHER_API_KEY")
 
 def analyze_weather(city_name):
     # 1. Fetch Forecast Data
