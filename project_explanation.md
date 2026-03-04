@@ -286,3 +286,66 @@ This separation ensures that:
 - All **logic and math** live in Python.
 - The **browser** only displays results.
 - The system is scalable, secure, and professional.
+
+## Disadvantages/Limitations of the Current Project
+
+1. **Simple Linear Model**: Using basic linear regression assumes temperature changes linearly over time, which isn't realistic for weather patterns.
+
+2. **Low R-squared Value (0.0355)**: The model explains only ~3.55% of temperature variance, indicating poor fit to the data.
+
+3. **Limited Features**: Only using time as a predictor, ignoring other important factors like humidity, pressure, seasonality, and geographic features.
+
+4. **Short-term Data**: Using only 8 forecast points (next 24 hours) may not show meaningful long-term trends.
+
+5. **Inflexible Thresholds**: Fixed 0.5 threshold for trend classification may not be optimal for all locations and conditions.
+
+6. **High Mean Squared Error**: Despite modest absolute error, the model's predictive capability is limited.
+
+7. **Non-linear Patterns Ignored**: Weather patterns are inherently non-linear and complex, making simple linear regression inadequate.
+
+---
+
+## Future Enhancements
+
+### Model Improvements
+1. **Advanced Regression Models**:
+   - Implement polynomial regression to capture non-linear trends
+   - Use Random Forest or Gradient Boosting for ensemble learning
+   - Apply Support Vector Regression for complex pattern recognition
+
+2. **Time Series Analysis**:
+   - Implement ARIMA or SARIMA models for seasonal patterns
+   - Add LSTM neural networks for sequence prediction
+   - Include autoregressive features (lagged variables)
+
+3. **Feature Engineering**:
+   - Add meteorological variables (humidity, pressure, wind speed, cloud cover)
+   - Include temporal features (hour of day, day of week, season)
+   - Incorporate geographic features (latitude, altitude, proximity to water)
+
+### Technical Enhancements
+4. **Model Evaluation**:
+   - Add cross-validation for robust performance assessment
+   - Implement multiple metrics (MAE, MAPE, RMSE) alongside R²
+   - Add residual analysis for model diagnostics
+
+5. **Data Expansion**:
+   - Use longer historical datasets for training
+   - Include multiple cities for generalized learning
+   - Implement rolling windows for dynamic model updates
+
+6. **Visualization Improvements**:
+   - Add confidence intervals to regression plots
+   - Include feature importance charts
+   - Implement interactive forecasting tools
+
+### System Improvements
+7. **Real-time Adaptability**:
+   - Implement online learning for model updates
+   - Add anomaly detection for unusual weather patterns
+   - Include alert systems for extreme weather predictions
+
+8. **Scalability**:
+   - Add caching mechanisms for API responses
+   - Implement asynchronous processing for multiple requests
+   - Optimize for cloud deployment with auto-scaling
