@@ -80,34 +80,3 @@ BetaWeather/
 ├── index.html          # Main Dashboard UI
 └── requirements.txt    # Python dependencies
 ```
-
-### 2. Updated `project_explanation.md`
-
-Replace your current `project_explanation.md` with this content:
-
-```markdown
-# Project Code Explanation
-
-## Overview: The Architecture
-
-This project uses a **Client–Server Architecture** to separate the user interface from the heavy data science logic:
-
-- **The Brain (`weather.py`)**: Uses Python, NumPy, and Scikit-Learn to perform Linear Regression and analyze trends.
-- **The Server (`app.py`)**: Uses Flask to serve the HTML pages and create an API endpoint (`/api/analyze`).
-- **The Face (`weather.js`)**: Runs in the browser, fetches analyzed data from our local server, and renders it using Chart.js.
-
----
-
-## PART 1: `weather.py` (The Data Science Brain)
-
-This file contains the core logic. It fetches raw data and transforms it into insights using Machine Learning libraries.
-
-### BLOCK 1: Imports & Setup
-```python
-import requests
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from datetime import datetime
-import os 
-```
-API_KEY = os.getenv("OPEN_WEATHER_API_KEY")
